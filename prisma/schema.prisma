@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 舆情记录
+model SentimentRecord {
+  id              String         @id @default(cuid())
+  code           String         @unique
+  source         String         // 来源：社区论坛、社交媒体、政府投诉平台、新闻媒体
+  sourceUrl      String?        // 来源URL
+  content        String         // 内容
+  sentiment      String         // 情感倾向：正面、中性、负面
+  sentimentScore Float          // 情感得分 -1.0 ~ 1.0
+  category       String         // 舆情分类
+  keywords       String         // 关键词，逗号分隔
+  projectName    String?        // 涉及项目
+  alertLevel     String?        // 预警等级：红、橙、黄
+  suggestion     String?        // 建议措施
+  status         String         @default("待处理") // 状态：待处理、处理中、已处理、已归档
+  handler        String?        // 处理人
+  handlerDept    String?        // 处理部门
+  processedAt    DateTime?      // 处理时间
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  events         SentimentEvent[]
+  alerts         AlertRecord[]
+}
+
+// 舆情过程记录
+model SentimentEvent {
+  id              String          @id @default(cuid())
+  recordId        String
+  sourceType      String
+  sourceTitle     String
+  action          String          // 动作：创建记录、情感分析、生成预警、措施采纳
+  actor           String
+  content         String
+  createdAt       DateTime        @default(now())
+  record          SentimentRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+}
+
+// 预警记录
+model AlertRecord {
+  id              String          @id @default(cuid())
+  recordId        String?         // 关联舆情记录
+  alertLevel      String          // 预警等级：红、橙、黄
+  alertType       String          // 预警类型：夜间施工投诉、扬尘投诉、噪音投诉、交通影响投诉
+  source          String          // 来源
+  content         String          // 内容摘要
+  suggestion      String          // 建议措施
+  status          String          @default("待处理") // 状态：待处理、处理中、已解决、已归档
+  handler         String?         // 处理人
+  handlerDept     String?         // 处理部门
+  resolvedAt      DateTime?       // 解决时间
+  resolvedNote    String?         // 解决备注
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  record          SentimentRecord? @relation(fields: [recordId], references: [id], onDelete: SetNull)
+}
+
+// 预警规则
+model AlertRule {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  type            String   // 规则类型：关键词匹配、情感阈值、舆情类别
+  condition       String   // 触发条件
+  alertLevel      String   // 触发预警等级：红、橙、黄
+  enabled         Boolean  @default(true)
+  priority        Int      @default(0)
+  description     String?
+  createdBy       String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([enabled, priority])
+}
+
+// 数据来源配置
+model DataSource {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  type            String   // 来源类型：社区论坛、社交媒体、政府投诉平台、新闻媒体
+  url             String   // 监控URL
+  keywords        String   // 关键词配置，逗号分隔
+  enabled         Boolean  @default(true)
+  interval        Int      @default(3600) // 抓取间隔（秒）
+  lastFetchAt     DateTime?
+  createdBy       String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([enabled])
+}
+
+// 业务洞察
+model Insight {
+  id        String   @id @default(cuid())
+  title     String
+  value     String
+  trend     String
+  level     String
+  createdAt DateTime @default(now())
+}
+
+// 集成日志
+model IntegrationLog {
+  id        String   @id @default(cuid())
+  service   String
+  status    String
+  batch     String
+  quality   String
+  detail    String
+  createdAt DateTime @default(now())
+}
+
+// AI草稿
+model AiDraft {
+  id                 String   @id @default(cuid())
+  conversationId     String
+  turnIndex          Int      @default(0)
+  topic              String
+  prompt             String
+  result             String
+  status             String
+  resultType         String
+  sourceSummary      String
+  businessObjectId   String
+  businessObjectType String
+  businessObjectTitle String
+  sourceMode         String
+  saveStatus         String
+  saveSummary        String?
+  savedAt            DateTime?
+  createdAt          DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+  @@index([businessObjectId, createdAt])
+}
+
+// 系统用户
+model SystemUser {
+  id          String    @id @default(cuid())
+  username    String    @unique
+  displayName String
+  department  String
+  role        String
+  status      String
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// 审计日志
+model AuditLog {
+  id         String   @id @default(cuid())
+  module     String
+  action     String
+  targetType String
+  targetName String
+  result     String
+  actor      String
+  summary    String
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([module, createdAt])
+  @@index([actor, createdAt])
+}
+
+// 系统设置
+model SystemSetting {
+  id          String   @id @default(cuid())
+  group       String
+  key         String   @unique
+  label       String
+  value       String
+  valueType   String
+  enabled     Boolean  @default(true)
+  description String
+  updatedBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([group, enabled])
+}
