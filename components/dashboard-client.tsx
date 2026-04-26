@@ -47,19 +47,21 @@ import {
 import { AgentWorkbench } from "@/components/agent-workbench";
 import { ConsoleShell } from "@/components/console-shell";
 import {
-  AlertRecordView,
   appMeta,
   consoleRoutes,
   getAnalysisView,
   getRouteByKey,
   getWorkspaceView,
-  InsightView,
   seedInsights,
+} from "@/lib/domain";
+import type {
+  AlertRecordView,
+  InsightView,
   SentimentRecordView,
   SystemSettingView,
   SystemUserView,
   WorkspaceView,
-} from "@/lib/domain";
+} from "@/lib/types";
 import { advanceFeedback, createFeedback, deleteFeedback } from "@/lib/feedback";
 import type {
   AlertRecordInput,
@@ -108,20 +110,21 @@ function buildRecordColumns(view: WorkspaceView): ColumnsType<SentimentRecordVie
       dataIndex: column.key,
       width: column.width,
       render: (value: string | null, record: SentimentRecordView) => {
+        const val = value ?? "";
         if (column.key === "sentiment") {
-          return <Tag color={sentimentColors[value] ?? "default"}>{value}</Tag>;
+          return <Tag color={sentimentColors[val as keyof typeof sentimentColors] ?? "default"}>{val}</Tag>;
         }
         if (column.key === "alertLevel") {
           if (!value) return <Typography.Text type="secondary">-</Typography.Text>;
-          return <Tag color={alertLevelColors[value] ?? "default"}>{value}</Tag>;
+          return <Tag color={alertLevelColors[val as keyof typeof alertLevelColors] ?? "default"}>{val}</Tag>;
         }
         if (column.key === "status") {
-          return <Tag color={statusColors[value] ?? "default"}>{value}</Tag>;
+          return <Tag color={statusColors[val as keyof typeof statusColors] ?? "default"}>{val}</Tag>;
         }
         if (column.key === "category") {
-          return <Tag color="blue">{value}</Tag>;
+          return <Tag color="blue">{val}</Tag>;
         }
-        return <Typography.Text>{String(value ?? "")}</Typography.Text>;
+        return <Typography.Text>{val}</Typography.Text>;
       },
     };
   });
@@ -305,7 +308,7 @@ export function DashboardClient({
   }
 
   function nextStatus(current: string) {
-    const index = appMeta.statuses.indexOf(current);
+    const index = appMeta.statuses.indexOf(current as typeof appMeta.statuses[number]);
     return appMeta.statuses[Math.min(index + 1, appMeta.statuses.length - 1)] ?? current;
   }
 

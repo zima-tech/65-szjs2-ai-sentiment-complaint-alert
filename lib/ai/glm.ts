@@ -10,7 +10,7 @@ export function runGlmAssistant(params: {
     sourceBatch: string;
   };
   history: Array<{ prompt: string; result: string }>;
-}) {
+}): { result: string; topic: string; source: "glm" | "local" } {
   // 本地模拟AI响应，实际环境应连接GLM API
   const { item } = params;
   return {
@@ -22,6 +22,6 @@ export function runGlmAssistant(params: {
       `应对措施：建议${item.owner}牵头处理，及时响应舆情关切。`,
     ].join("\n"),
     topic: `${item.title} · 分析方案`,
-    source: "local" as const,
+    source: "local",
   };
 }

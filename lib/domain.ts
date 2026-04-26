@@ -20,7 +20,7 @@ export const appMeta = {
     "处理中",
     "已解决",
     "已归档"
-  ],
+  ] as const,
   "aiTitle": "智能舆情分析与预警辅助",
   "aiPrompt": "请基于舆情内容生成分类、预警等级和应对建议。",
   "alertLevels": ["红", "橙", "黄"],
@@ -672,30 +672,35 @@ export const seedRecords = [
 
 export const seedInsights = [
   {
+    "id": "1",
     "title": "本周负面舆情占比",
     "value": "58%",
     "trend": "down",
     "level": "warning"
   },
   {
+    "id": "2",
     "title": "红色预警平均响应时长",
     "value": "2.3h",
     "trend": "steady",
     "level": "success"
   },
   {
+    "id": "3",
     "title": "舆情解决率",
     "value": "87%",
     "trend": "up",
     "level": "success"
   },
   {
+    "id": "4",
     "title": "夜间施工投诉本月新增",
     "value": "12",
     "trend": "up",
     "level": "danger"
   },
   {
+    "id": "5",
     "title": "居民满意度",
     "value": "78%",
     "trend": "up",
@@ -875,7 +880,7 @@ export const alertRecordColumns = [
   { key: "handler", label: "处理人", width: 120 },
 ] as const;
 
-function routeMetrics(snapshot: DashboardSnapshot, rows: Record<string, unknown>[] = snapshot.records) {
+function routeMetrics(snapshot: DashboardSnapshot, rows: Record<string, unknown>[] = snapshot.records): RouteMetric[] {
   const totalCount = rows.length;
   const negativeCount = rows.filter((r) => (r as { sentiment: string }).sentiment === "负面").length;
   const pendingCount = rows.filter((r) => (r as { status: string }).status === "待处理").length;
@@ -883,10 +888,10 @@ function routeMetrics(snapshot: DashboardSnapshot, rows: Record<string, unknown>
 
   return [
     { label: "舆情总数", value: totalCount, helper: "已纳入监控的舆情记录", tone: "default" },
-    { label: "负面舆情", value: negativeCount, helper: "需关注的负面情感记录", tone: negativeCount > 0 ? "warning" : "success" },
-    { label: "待处理", value: pendingCount, helper: "等待处理的舆情", tone: pendingCount > 0 ? "warning" : "success" },
-    { label: "红色预警", value: redAlertCount, helper: "需立即处理的红色预警", tone: redAlertCount > 0 ? "danger" : "success" },
-  ];
+    { label: "负面舆情", value: negativeCount, helper: "需关注的负面情感记录", tone: (negativeCount > 0 ? "warning" : "success") },
+    { label: "待处理", value: pendingCount, helper: "等待处理的舆情", tone: (pendingCount > 0 ? "warning" : "success") },
+    { label: "红色预警", value: redAlertCount, helper: "需立即处理的红色预警", tone: (redAlertCount > 0 ? "danger" : "success") },
+  ] as RouteMetric[];
 }
 
 function sortedRows(rows: Record<string, unknown>[]) {
@@ -933,11 +938,11 @@ export function getWorkspaceView(routeKey: string, snapshot: DashboardSnapshot):
       title: "预警管理",
       description: "配置预警规则并管理预警记录",
       metrics: [
-        { label: "预警总数", value: snapshot.alerts.length, helper: "已触发的预警记录", tone: "default" },
-        { label: "待处理", value: snapshot.alerts.filter((a) => a.status === "待处理").length, helper: "等待处理的预警", tone: "warning" },
-        { label: "已解决", value: snapshot.alerts.filter((a) => a.status === "已解决").length, helper: "已处置完成的预警", tone: "success" },
-        { label: "红色预警", value: snapshot.alerts.filter((a) => a.alertLevel === "红").length, helper: "需立即处理", tone: "danger" },
-      ],
+        { label: "预警总数", value: snapshot.alerts.length, helper: "已触发的预警记录", tone: "default" as const },
+        { label: "待处理", value: snapshot.alerts.filter((a) => a.status === "待处理").length, helper: "等待处理的预警", tone: "warning" as const },
+        { label: "已解决", value: snapshot.alerts.filter((a) => a.status === "已解决").length, helper: "已处置完成的预警", tone: "success" as const },
+        { label: "红色预警", value: snapshot.alerts.filter((a) => a.alertLevel === "红").length, helper: "需立即处理", tone: "danger" as const },
+      ] as RouteMetric[],
       columns: [...alertRecordColumns],
       rows: alertRows as Record<string, unknown>[],
       emptyDescription: "暂无预警记录，系统将自动根据规则生成预警。",
