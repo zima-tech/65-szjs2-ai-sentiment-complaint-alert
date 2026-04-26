@@ -13,12 +13,14 @@ import {
 } from "@ant-design/icons";
 import {
   App,
+  Badge,
   Button,
   Card,
   Col,
   Empty,
   Form,
   Input,
+  List,
   Modal,
   Progress,
   Row,
@@ -164,20 +166,6 @@ function renderWorkspaceField(field: WorkspaceField) {
     return <Input.TextArea rows={4} placeholder={field.placeholder} />;
   }
   return <Input placeholder={field.placeholder} />;
-}
-
-function renderInsightTile(insight: InsightView, index: number) {
-  return (
-    <Col xs={24} md={12} xl={8} key={`${insight.title}-${index}`}>
-      <div className="insight-tile">
-        <Typography.Text strong>{insight.title}</Typography.Text>
-        <Typography.Title level={4}>{insight.value}</Typography.Title>
-        <Tag color={insight.level === "success" ? "green" : insight.level === "warning" ? "orange" : insight.level === "danger" ? "red" : "blue"}>
-          {insight.trend === "up" ? "上升" : insight.trend === "down" ? "下降" : "平稳"}
-        </Tag>
-      </div>
-    </Col>
-  );
 }
 
 function formatDate(value: string | null) {
@@ -400,89 +388,178 @@ export function DashboardClient({
     });
   }
 
+  function navigateTo(path: string) {
+    window.location.href = path;
+  }
+
   function renderDashboard() {
     return (
       <Space direction="vertical" size={16} className="full-width">
-        <Row gutter={[16, 16]}>
-          <Col xs={24} md={8}>
-            <Card>
+        {/* 统计概览 - 横向排列 */}
+        <Row gutter={[12, 12]}>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
               <Statistic title="舆情总数" value={snapshot.records.length} suffix="条" prefix={<FileAddOutlined />} />
             </Card>
           </Col>
-          <Col xs={24} md={8}>
-            <Card>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
               <Statistic title="负面舆情" value={negativeCount} suffix="条" valueStyle={{ color: negativeCount > 0 ? "#d93026" : "#3d9100" }} />
             </Card>
           </Col>
-          <Col xs={24} md={8}>
-            <Card>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
               <Statistic title="红色预警" value={redAlertCount} suffix="条" valueStyle={{ color: redAlertCount > 0 ? "#d93026" : "#3d9100" }} prefix={<WarningOutlined />} />
             </Card>
           </Col>
-        </Row>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} lg={15}>
-            <Card
-              title="业务洞察"
-              extra={
-                <Button icon={<ReloadOutlined />} onClick={() => message.info("首页数据已刷新")}>
-                  刷新
-                </Button>
-              }
-            >
-              <Row gutter={[12, 12]}>
-                {seedInsights.map((insight, index) => renderInsightTile(insight, index))}
-              </Row>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
+              <Statistic title="待处理" value={snapshot.records.filter((r) => r.status === "待处理").length} suffix="条" valueStyle={{ color: "#faad14" }} />
             </Card>
           </Col>
-          <Col xs={24} lg={9}>
-            <Card title="处理留痕">
-              {snapshot.events.length === 0 ? (
-                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无处理留痕" />
+        </Row>
+
+        {/* 业务洞察 - 紧凑网格布局 */}
+        <Card
+          title="业务洞察"
+          size="small"
+          extra={
+            <Button type="link" size="small" icon={<ReloadOutlined />} onClick={() => message.info("首页数据已刷新")}>
+              刷新
+            </Button>
+          }
+        >
+          <Row gutter={[8, 8]}>
+            {seedInsights.map((insight, index) => (
+              <Col xs={12} sm={8} md={4} key={index}>
+                <Card size="small" style={{ textAlign: "center" }}>
+                  <Typography.Text type="secondary" style={{ fontSize: "12px" }}>{insight.title}</Typography.Text>
+                  <Typography.Title level={4} style={{ margin: "4px 0" }}>{insight.value}</Typography.Title>
+                  <Tag color={insight.level === "success" ? "green" : insight.level === "warning" ? "orange" : insight.level === "danger" ? "red" : "blue"}>
+                    {insight.trend === "up" ? "↑上升" : insight.trend === "down" ? "↓下降" : "→平稳"}
+                  </Tag>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        </Card>
+
+        {/* 最新舆情 + 预警记录 - 左右布局 */}
+        <Row gutter={[12, 12]}>
+          <Col xs={24} lg={14}>
+            <Card
+              title="最新舆情"
+              size="small"
+              extra={
+                <Button type="link" size="small" onClick={() => navigateTo("/monitor")}>
+                  查看全部
+                </Button>
+              }
+              bodyStyle={{ padding: 0 }}
+            >
+              <List
+                size="small"
+                loading={pending}
+                dataSource={snapshot.records.slice(0, 5)}
+                renderItem={(item) => (
+                  <List.Item style={{ padding: "8px 12px", cursor: "pointer" }}
+                    onClick={() => { setSelectedRecord(item); setRecordDetailOpen(true); }}>
+                    <List.Item.Meta
+                      title={
+                        <Space size="small">
+                          <Typography.Text code style={{ fontSize: "11px" }}>{item.code}</Typography.Text>
+                          <Tag color={sentimentColors[item.sentiment as keyof typeof sentimentColors] ?? "default"} style={{ marginRight: 0 }}>{item.sentiment}</Tag>
+                          <Tag style={{ marginRight: 0 }}>{item.category}</Tag>
+                        </Space>
+                      }
+                      description={
+                        <Space size="small">
+                          <Typography.Text type="secondary" style={{ fontSize: "12px" }}>{item.source}</Typography.Text>
+                          <Tag color={statusColors[item.status as keyof typeof statusColors] ?? "default"} style={{ marginRight: 0 }}>{item.status}</Tag>
+                        </Space>
+                      }
+                    />
+                  </List.Item>
+                )}
+                locale={{ emptyText: "暂无舆情记录" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} lg={10}>
+            <Card
+              title={
+                <Space>
+                  预警记录
+                  {snapshot.alerts.filter((a) => a.status === "待处理").length > 0 && (
+                    <Badge count={snapshot.alerts.filter((a) => a.status === "待处理").length} style={{ backgroundColor: "#ff4d4f" }} />
+                  )}
+                </Space>
+              }
+              size="small"
+              extra={
+                <Button type="link" size="small" onClick={() => navigateTo("/alert")}>
+                  查看全部
+                </Button>
+              }
+              bodyStyle={{ padding: 0 }}
+            >
+              {snapshot.alerts.length === 0 ? (
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无预警记录" style={{ padding: "20px" }} />
               ) : (
-                <Timeline
-                  items={snapshot.events.slice(0, 6).map((event) => ({
-                    children: (
-                      <Space direction="vertical" size={2}>
-                        <Typography.Text strong>{event.action}</Typography.Text>
-                        <Typography.Text type="secondary">{event.content}</Typography.Text>
-                        <Tag color="blue">{event.sourceTitle}</Tag>
-                      </Space>
-                    ),
-                  }))}
+                <List
+                  size="small"
+                  loading={pending}
+                  dataSource={snapshot.alerts.slice(0, 4)}
+                  renderItem={(item) => (
+                    <List.Item style={{ padding: "8px 12px" }}>
+                      <List.Item.Meta
+                        avatar={
+                          <Badge status={item.alertLevel === "红" ? "error" : item.alertLevel === "橙" ? "warning" : "default"} />
+                        }
+                        title={
+                          <Space size="small">
+                            <Tag color={item.alertLevel === "红" ? "red" : item.alertLevel === "橙" ? "orange" : "gold"} style={{ marginRight: 0 }}>
+                              {item.alertLevel}级
+                            </Tag>
+                            <Typography.Text>{item.alertType}</Typography.Text>
+                          </Space>
+                        }
+                        description={
+                          <Typography.Text type="secondary" style={{ fontSize: "12px" }} ellipsis>
+                            {item.source} · {item.status}
+                          </Typography.Text>
+                        }
+                      />
+                    </List.Item>
+                  )}
                 />
               )}
             </Card>
           </Col>
         </Row>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} lg={12}>
-            <Card title="最新舆情">
-              <Table
-                rowKey="id"
-                loading={pending}
-                columns={recordColumns.slice(0, 5)}
-                dataSource={snapshot.records.slice(0, 5)}
-                pagination={false}
-                scroll={{ x: 600 }}
-                size="small"
-              />
-            </Card>
-          </Col>
-          <Col xs={24} lg={12}>
-            <Card title="预警记录">
-              <Table
-                rowKey="id"
-                loading={pending}
-                columns={alertColumns.slice(0, 5)}
-                dataSource={snapshot.alerts.slice(0, 5)}
-                pagination={false}
-                scroll={{ x: 600 }}
-                size="small"
-              />
-            </Card>
-          </Col>
-        </Row>
+
+        {/* 处理留痕 */}
+        <Card title="处理留痕" size="small">
+          {snapshot.events.length === 0 ? (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无处理留痕" />
+          ) : (
+            <Timeline
+              items={snapshot.events.slice(0, 5).map((event) => ({
+                children: (
+                  <Space direction="vertical" size={2}>
+                    <Space size="small">
+                      <Typography.Text strong>{event.action}</Typography.Text>
+                      <Tag color="blue" style={{ marginRight: 0 }}>{event.sourceTitle}</Tag>
+                    </Space>
+                    <Typography.Text type="secondary" style={{ fontSize: "12px" }} ellipsis>
+                      {event.content}
+                    </Typography.Text>
+                  </Space>
+                ),
+              }))}
+            />
+          )}
+        </Card>
       </Space>
     );
   }
@@ -879,7 +956,7 @@ export function DashboardClient({
           title="日志审计"
           extra={
             <Space wrap>
-              <Input.Search allowClear placeholder="搜索对象、操作人或摘要" onSearch={setLogKeyword} onChange={(event) => setLogKeyword(event.target.value)} style={{ width: 240 }} />
+              <Input.Search allowClear placeholder="搜索对象，操作人或摘要" onSearch={setLogKeyword} onChange={(event) => setLogKeyword(event.target.value)} style={{ width: 240 }} />
               <Select
                 allowClear
                 placeholder="筛选模块"
